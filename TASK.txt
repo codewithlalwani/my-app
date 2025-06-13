@@ -1,0 +1,30 @@
+Requirements:
+User Creation:
+
+Implement functionality to create a new user.
+
+On creation, store:
+
+Roll ID
+
+Token
+
+Default Tabs (Visible to All Users):
+
+Dashboard
+
+Profile
+
+Settings
+
+Users Tab (Role-Based Access):
+
+Show the "Users" tab only if the user's Roll ID is 1.
+
+If visible, also show a "Create User" button inside this tab.
+
+If the user's Roll ID is not 1, hide the "Users" tab entirely.
+
+User Details Table:
+
+Display the list of users and their details in a table format.
