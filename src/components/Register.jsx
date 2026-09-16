@@ -1,138 +1,54 @@
-// src/components/Register.jsx
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import "../App.css";
-import backgroundImage from "../down.avif";
+import React, { useState } from "react";
+import { Link, Navigate, useNavigate } from "react-router-dom";
+import ArrowForward from "@mui/icons-material/ArrowForward";
+import AuthLayout from "./AuthLayout";
+import { createAccount, passwordHint } from "../utils/accounts";
+import { getCurrentUser } from "../utils/storage";
 
-const Register = () => {
+const fields = [
+  { name: "name", label: "Full name", autoComplete: "name", placeholder: "Your full name" },
+  { name: "email", label: "Email address", type: "email", autoComplete: "email", placeholder: "you@example.com" },
+  { name: "age", label: "Age", type: "number", min: 1, max: 120, step: 1, placeholder: "Your age" },
+  { name: "address", label: "Address", autoComplete: "street-address", placeholder: "Your city or address" },
+  { name: "password", label: "Password", type: "password", autoComplete: "new-password", placeholder: "Create a password" },
+  { name: "confirmPassword", label: "Confirm password", type: "password", autoComplete: "new-password", placeholder: "Repeat your password" },
+];
+
+export default function Register() {
   const navigate = useNavigate();
+  const [formData, setFormData] = useState({ name: "", email: "", age: "", address: "", password: "", confirmPassword: "" });
+  const [error, setError] = useState("");
 
-  const [formData, setFormData] = useState({
+  if (getCurrentUser()) return <Navigate to="/dashboard" replace />;
 
-    name: "",
-    email: "",
-    age: "",
-    address: "",
-    password: "",
-    confirmPassword: "",
-    rollID : "",
-    // token: "",
-  });
-
-  const [users, setUsers] = useState([]);
-
-  useEffect(() => {
-    const storedUsers = JSON.parse(localStorage.getItem("users")) || [];
-    setUsers(storedUsers);
-  }, []);
-
-  const handleChange = (e) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  const generateUniqueId = () => {
-    const lastUser = users[users.length - 1];
-    return lastUser ? lastUser.id + 1 : 1;
-  };
-
-  const validatePassword = (password) => {
-    const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*]).{8,}$/;
-    return passwordRegex.test(password);
-  };
-
-  const saveData = () => {
-    const { name, email, age, address, password, confirmPassword } = formData;
-
-    if (!name || !email || !age || !address || !password || !confirmPassword) {
-      alert("All fields are required!");
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    setError("");
+    if (formData.password !== formData.confirmPassword) {
+      setError("Your passwords don't match. Please try again.");
       return;
     }
-
-    if (!validatePassword(password)) {
-      alert("Password must be at least 8 characters long, include a capital letter and a special character.");
-      return;
+    try {
+      const user = createAccount(formData, { registration: true });
+      navigate("/login", { replace: true, state: { registered: true, email: user.email } });
+    } catch (error) {
+      setError(error.message);
     }
-
-    if (password !== confirmPassword) {
-      alert("Passwords do not match!");
-      return;
-    }
-
-    const isEmailRegistered = users.some((user) => user.email === email);
-    if (isEmailRegistered) {
-      alert("Email is already registered.");
-      return;
-    }
-
-    const newUser = {
-      id: generateUniqueId(),
-      name,
-      email,
-      age,
-      address,
-      password,
-      rollID : 1,
-      // token: 1,
-    };
-
-    // // Optional: Only set these if this is the "admin register"
-    // localStorage.setItem("rollId", JSON.stringify(1));
-    // localStorage.setItem("token", JSON.stringify(1));
-
-    const updatedUsers = [...users, newUser];
-    localStorage.setItem("users", JSON.stringify(updatedUsers));
-    setUsers(updatedUsers);
-
-    alert("Registration successful. Redirecting to login...");
-    navigate("/login");
   };
 
   return (
-    <div
-      className="form-container"
-      style={{
-        backgroundImage: `url(${backgroundImage})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        minHeight: "100vh",
-        paddingTop: "50px",
-      }}
-    >
-      <div className="register-box">
-        <h1 className="register-title">Create Account</h1>
-        {["name", "email", "age", "address", "password", "confirmPassword"].map(
-          (field, idx) => (
-            <div key={idx} className="input-group">
-              <input
-                type={
-                  field.includes("password")
-                    ? "password"
-                    : field === "email"
-                    ? "email"
-                    : field === "age"
-                    ? "number"
-                    : "text"
-                }
-                name={field}
-                placeholder={
-                  field === "confirmPassword"
-                    ? "Confirm Password"
-                    : field.charAt(0).toUpperCase() + field.slice(1)
-                }
-                value={formData[field]}
-                onChange={handleChange}
-                required
-                className="input-control"
-              />
-            </div>
-          )
-        )}
-        <button onClick={saveData} className="register-button">
-          Register
-        </button>
-      </div>
-    </div>
+    <AuthLayout title="Create account" description="A fresh start, and a space to call your own." registration>
+      {error && <p className="auth-error" role="alert">{error}</p>}
+      <form onSubmit={handleSubmit} className="auth-form auth-form-register">
+        {fields.map(({ label, ...field }) => (
+          <label key={field.name} htmlFor={`register-${field.name}`}>{label}
+            <input {...field} id={`register-${field.name}`} type={field.type || "text"} value={formData[field.name]} required onChange={(event) => { setFormData((previous) => ({ ...previous, [event.target.name]: event.target.value })); setError(""); }} aria-describedby={field.name === "password" ? "password-hint" : undefined} />
+          </label>
+        ))}
+        <p id="password-hint" className="auth-password-hint">{passwordHint}</p>
+        <button type="submit" className="auth-submit">Create account <ArrowForward /></button>
+      </form>
+      <p className="auth-link">Already have an account? <Link to="/login">Sign in</Link></p>
+    </AuthLayout>
   );
-};
-
-export default Register;
+}

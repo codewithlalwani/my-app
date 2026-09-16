@@ -1,94 +1,44 @@
-// src/components/Login.jsx
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import "../App.css";
-import backgroundImage from "../down.avif";
+import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
+import ArrowForward from "@mui/icons-material/ArrowForward";
+import AuthLayout from "./AuthLayout";
+import { signIn } from "../utils/accounts";
+import { getCurrentUser } from "../utils/storage";
 
-const Login = () => {
+export default function Login() {
   const navigate = useNavigate();
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
-
+  const location = useLocation();
+  const [formData, setFormData] = useState({ email: location.state?.email || "", password: "" });
   const [error, setError] = useState("");
 
-  const handleChange = (e) => {
-    setFormData((prev) => ({
-      ...prev,
-      [e.target.name]: e.target.value.trimStart(),
-    }));
-  };
+  if (getCurrentUser()) return <Navigate to="/dashboard" replace />;
 
-  const handleLogin = (e) => {
-    e.preventDefault();
-
-    const storedUsers = JSON.parse(localStorage.getItem("users")) || [];
-
-    const matchedUser = storedUsers.find(
-      (user) =>
-        user.email === formData.email.trim() &&
-        user.password === formData.password.trim()
-    );
-
-    if (matchedUser) {
-      // ✅ Add token to matchedUser
-      const updatedUser = { ...matchedUser, token: 1 };
-
-      // ✅ Save to localStorage as current user
-      localStorage.setItem("currentUser", JSON.stringify(updatedUser));
-
-      alert("Login successful!");
-      navigate("/dashboard");
-    } else {
-      setError("Invalid email or password");
+  const handleLogin = (event) => {
+    event.preventDefault();
+    setError("");
+    try {
+      signIn(formData.email, formData.password);
+      navigate("/dashboard", { replace: true });
+    } catch (error) {
+      setError(error.message);
     }
   };
 
-  return (
-    <div
-      className="form-container"
-      style={{
-        backgroundImage: `url(${backgroundImage})`,
-        backgroundSize: "cover",
-        backgroundPosition: "center",
-        minHeight: "100vh",
-        paddingTop: "50px",
-      }}
-    >
-      <div className="login-box">
-        <h1 className="login-title">Login</h1>
-        {error && <p style={{ color: "red", textAlign: "center" }}>{error}</p>}
-        <form onSubmit={handleLogin}>
-          <div className="input-group">
-            <input
-              type="email"
-              name="email"
-              className="input-control"
-              placeholder="Email"
-              value={formData.email}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <div className="input-group">
-            <input
-              type="password"
-              name="password"
-              className="input-control"
-              placeholder="Password"
-              value={formData.password}
-              onChange={handleChange}
-              required
-            />
-          </div>
-          <button type="submit" className="login-button">
-            Login
-          </button>
-        </form>
-      </div>
-    </div>
-  );
-};
+  const handleChange = (event) => {
+    setFormData((previous) => ({ ...previous, [event.target.name]: event.target.value }));
+    setError("");
+  };
 
-export default Login;
+  return (
+    <AuthLayout title="Login" description="Welcome back. Your workspace is waiting.">
+      {location.state?.registered && <p className="auth-success" role="status">Your account is ready. Sign in to get started.</p>}
+      {error && <p id="login-error" className="auth-error" role="alert">{error}</p>}
+      <form onSubmit={handleLogin} className="auth-form">
+        <label htmlFor="login-email">Email address<input id="login-email" type="email" name="email" placeholder="you@example.com" autoComplete="username" value={formData.email} onChange={handleChange} required aria-describedby={error ? "login-error" : undefined} /></label>
+        <label htmlFor="login-password">Password<input id="login-password" type="password" name="password" placeholder="Enter your password" autoComplete="current-password" value={formData.password} onChange={handleChange} required aria-describedby={error ? "login-error" : undefined} /></label>
+        <button type="submit" className="auth-submit">Sign in <ArrowForward /></button>
+      </form>
+      <p className="auth-link">New to the workspace? <Link to="/register">Create an account</Link></p>
+    </AuthLayout>
+  );
+}
